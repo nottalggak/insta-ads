@@ -97,8 +97,8 @@ function log(msg) { S.log = [`${new Date().toLocaleString("ko-KR", {month: "nume
 async function api(method, path, params = {}) {
   if (DEMO) return Demo.call(method, path, params);
   const q = new URLSearchParams({locale: "ko_KR"});
-  for (const [k, v] of Object.entries(params)) q.set(k, typeof v === "object" ? JSON.stringify(v) : v);
-  q.set("access_token", token);
+  for (const [k, v] of Object.entries(params)) if (k !== "__token") q.set(k, typeof v === "object" ? JSON.stringify(v) : v);
+  q.set("access_token", params.__token || token);
   const url = `https://graph.facebook.com/${VER}/${path}`;
   for (let i = 0; i < 4; i++) {
     const r = method === "GET" ? await fetch(`${url}?${q}`) : await fetch(url, {method: "POST", body: q});
@@ -158,15 +158,20 @@ async function viewPick(err) {
   const diag = [];
   const safe = async (label, fn) => { try { return await fn(); } catch (e) { diag.push(`${label}: ${e.message}`); return []; } };
   const accts = await safe("광고 계정", () => all("me/adaccounts", {fields: "name,account_id,currency,account_status"}));
-  let pages = await safe("페이지", () => all("me/accounts", {fields: "name,instagram_business_account{id,username},connected_instagram_account{id,username}"}));
-  if (!pages.length) pages = await safe("페이지(간단히)", () => all("me/accounts", {fields: "name,instagram_business_account"}));
+  let pages = await safe("페이지", () => all("me/accounts", {fields: "name,access_token,instagram_business_account{id,username},connected_instagram_account{id,username}"}));
+  if (!pages.length) pages = await safe("페이지(간단히)", () => all("me/accounts", {fields: "name,access_token"}));
   // 인스타 계정은 페이지 · 광고 계정 · 비즈니스 세 곳에서 모두 찾는다
   const ig = new Map(), addIg = (x, page, from) => { if (x && x.id && !ig.has(x.id)) ig.set(x.id, {id: x.id, username: x.username || "", page, from}); };
   pages.forEach(p => { addIg(p.instagram_business_account, p.id, "페이지"); addIg(p.connected_instagram_account, p.id, "페이지"); });
+  for (const p of pages.slice(0, 5)) if (p.access_token) {
+    (await safe(`'${p.name}' 페이지 인스타`, () => all(`${p.id}/instagram_accounts`, {fields: "id,username", __token: p.access_token}))).forEach(x => addIg(x, p.id, "페이지"));
+    if (!ig.size) { const r = await safe(`'${p.name}' 인스타 연결`, () => get(p.id, {fields: "instagram_business_account{id,username}", __token: p.access_token})); addIg(r.instagram_business_account, p.id, "페이지"); }
+  }
   for (const a of accts.slice(0, 10)) (await safe(`'${a.name}' 인스타`, () => all(`${a.id}/instagram_accounts`, {fields: "id,username"}))).forEach(x => addIg(x, null, "광고 계정"));
   const biz = await safe("비즈니스", () => all("me/businesses", {fields: "name"}));
   for (const b of biz.slice(0, 5)) {
     (await safe(`'${b.name}' 인스타`, () => all(`${b.id}/owned_instagram_accounts`, {fields: "id,username"}))).forEach(x => addIg(x, null, "비즈니스"));
+    (await safe(`'${b.name}' 인스타(공유)`, () => all(`${b.id}/instagram_accounts`, {fields: "id,username"}))).forEach(x => addIg(x, null, "비즈니스"));
     if (!pages.length) (await safe(`'${b.name}' 페이지`, () => all(`${b.id}/owned_pages`, {fields: "name,instagram_business_account"}))).forEach(p => { pages.push(p); addIg(p.instagram_business_account, p.id, "비즈니스 페이지"); });
   }
   const igs = [...ig.values()];
@@ -182,22 +187,32 @@ async function viewPick(err) {
     <p class="muted" style="margin-top:18px">광고를 낼 인스타 계정</p>
     ${igs.map(x => `<label class="opt"><input type="radio" name="i" value="${esc(x.id)}" data-u="${esc(x.username)}" data-p="${esc(x.page || "")}" ${x === firstIg ? "checked" : ""}>
       <span>${x.username ? "@" + esc(x.username) : "인스타 계정 " + esc(x.id)}<br><span class="muted">${esc(x.from)}에 연결됨</span></span></label>`).join("")}
+    ${pages.length ? `<label class="opt"><input type="radio" name="i" value="PAGE" ${igs.length ? "" : "checked"}><span>인스타 계정 대신 <b>페이지 이름</b>으로 인스타에 광고<br><span class="muted">광고 위에 @아이디 대신 페이지 이름(예: nonce)이 표시됩니다. 인스타 계정이 안 보일 때 쓰세요.</span></span></label>` : ""}
     <p class="muted" style="margin-top:18px">광고에 함께 표시될 페이스북 페이지</p>
     ${pages.map(p => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-n="${esc(p.name)}" ${p === firstPage ? "checked" : ""}><span>${esc(p.name)}</span></label>`).join("")}
-    ${igs.length && pages.length ? "" : `<div class="note">${!pages.length ? "로그인할 때 연결할 <b>페이지</b>가 선택되지 않았습니다. " : ""}${!igs.length ? "연결된 <b>인스타 계정</b>을 찾지 못했습니다. " : ""}
+    ${igs.length && pages.length ? "" : `<div class="note">${!pages.length ? "로그인할 때 연결할 <b>페이지</b>가 선택되지 않았습니다. " : ""}${!igs.length ? "연결된 <b>인스타 계정</b>을 찾지 못했습니다. 위의 '페이지 이름으로 광고'로 바로 진행해도 되고, " : ""}
       아래 <b>다시 로그인</b>을 누르고, 메타가 '어떤 비즈니스·페이지·인스타를 연결할지' 물으면 <b>nonce</b>를 모두 선택해 주세요.</div>
       <button class="btn fb full" id="rel">다시 로그인 (연결할 계정 다시 고르기)</button>`}
     <button class="btn full" id="go">이 계정으로 진행</button>
-    <details style="margin-top:14px"><summary class="muted">연결 상태 자세히 (막히면 이 부분을 캡처해 보내 주세요)</summary>
+    <details style="margin-top:14px" ${igs.length ? "" : "open"}><summary class="muted">연결 상태 자세히 (막히면 이 부분을 캡처해 보내 주세요)</summary>
       <p class="muted" style="margin-top:8px">광고 계정 ${accts.length}개 · 페이지 ${pages.length}개 · 인스타 ${igs.length}개 · 비즈니스 ${biz.length}개<br>${diag.map(esc).join("<br>") || "오류 없음"}</p></details>
     ${err ? `<div class="alert">${esc(err)}</div>` : ""}<div id="pickErr"></div></div>`;
   document.querySelectorAll(".re").forEach(el => el.onclick = e => { e.preventDefault(); viewPick(); });
   if ($("#rel")) $("#rel").onclick = () => FB.login(r => { if (r.authResponse) { token = r.authResponse.accessToken; viewPick(); } }, CFG.configId ? {config_id: CFG.configId, auth_type: "rerequest"} : {scope: SCOPE, auth_type: "rerequest"});
-  $("#go").onclick = () => {
+  $("#go").onclick = async () => {
     const a = document.querySelector("input[name=a]:checked"), i = document.querySelector("input[name=i]:checked"), p = document.querySelector("input[name=p]:checked");
     if (!a || !i || !p) { $("#pickErr").innerHTML = `<div class="alert">${!a ? "광고 계정" : !i ? "인스타 계정" : "페이스북 페이지"}을 골라 주세요.</div>`; return; }
-    Object.assign(S, {acct: a.value, acctName: a.dataset.n, cur: a.dataset.c || "KRW", page: p.value, pageName: p.dataset.n, ig: i.value, igName: i.dataset.u || p.dataset.n}); save();
-    log(`광고 계정 '${a.dataset.n}'(${a.dataset.c}) · ${i.dataset.u ? "@" + i.dataset.u : "인스타"} · 페이지 '${p.dataset.n}' 연결`); viewCreate();
+    let igId = i.value, igName = i.dataset.u || p.dataset.n;
+    if (igId === "PAGE") {
+      const pg = pages.find(x => x.id === p.value) || {};
+      try {
+        const have = await all(`${p.value}/page_backed_instagram_accounts`, {fields: "id", __token: pg.access_token});
+        igId = have.length ? have[0].id : (await post(`${p.value}/page_backed_instagram_accounts`, {__token: pg.access_token})).id;
+      } catch (e) { $("#pickErr").innerHTML = `<div class="alert">페이지 이름으로 인스타 광고를 준비하지 못했습니다: ${esc(e.message)}</div>`; return; }
+      igName = p.dataset.n;
+    }
+    Object.assign(S, {acct: a.value, acctName: a.dataset.n, cur: a.dataset.c || "KRW", page: p.value, pageName: p.dataset.n, ig: igId, igName}); save();
+    log(`광고 계정 '${a.dataset.n}'(${a.dataset.c}) · ${i.value === "PAGE" ? "페이지 이름으로 인스타" : i.dataset.u ? "@" + i.dataset.u : "인스타"} · 페이지 '${p.dataset.n}' 연결`); viewCreate();
   };
 }
 
