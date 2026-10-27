@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>인스타 광고</title>
+<script src="config.js"></script>
+<style>
+:root{--bg:#f2f4f6;--card:#fff;--t:#191f28;--s:#6b7684;--l:#e5e8eb;--g:#b5c934;--gd:#7d8c12;--red:#f04452;--blue:#3182f6}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--t);font-family:-apple-system,"Pretendard","Apple SD Gothic Neo",sans-serif;padding:24px 16px 60px;-webkit-font-smoothing:antialiased}
+.w{max-width:960px;margin:0 auto}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:700}.sp{flex:1}
+.who{font-size:13px;color:var(--s)}
+input,select,textarea,button{font:inherit}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;background:var(--t);color:#fff}
+.btn.fb{background:#1877f2}.btn.lt{background:#e8ebee;color:var(--t)}.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}.btn.full{width:100%;padding:16px;font-size:17px;margin-top:16px}
+.btn:disabled{opacity:.4;cursor:default}
+.c{background:var(--card);border-radius:20px;padding:22px;margin-top:14px}
+.c h2{font-size:18px;margin-bottom:12px;display:flex;align-items:center;gap:8px}.c h2 small{color:var(--s);font-weight:500;font-size:13px}
+p{line-height:1.65}.muted{color:var(--s);font-size:13px}
+.alert{background:#fff0f0;color:#c0262f;border-radius:14px;padding:12px 16px;margin-top:14px;font-size:14px;line-height:1.6}
+.note{background:#f4f8d6;border-radius:14px;padding:12px 16px;margin-top:14px;font-size:14px;line-height:1.6}
+.demo{background:#fff6d6;border-radius:12px;padding:10px 14px;font-size:13px;margin-top:14px}
+.opt{display:flex;gap:12px;align-items:center;padding:14px;border:1.5px solid var(--l);border-radius:14px;margin-top:8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--t)}
+.check{display:flex;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--l)}.check:first-of-type{border-top:0}
+.dot{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;color:#fff;background:var(--l)}
+.dot.ok{background:var(--t)}.dot.ok::after{content:"✓"}.dot.no{background:var(--red)}.dot.no::after{content:"!"}
+.f{display:grid;grid-template-columns:120px 1fr;gap:10px 14px;align-items:center;margin-top:6px}
+.f label{color:var(--s);font-size:14px}
+.f input,.f select,.f textarea{border:1px solid var(--l);border-radius:10px;padding:10px 12px;font-size:15px;width:100%;background:#fff}
+.f textarea{min-height:92px;resize:vertical;line-height:1.5}
+@media(max-width:640px){.f{grid-template-columns:1fr}}
+label.agree{display:flex;gap:10px;align-items:flex-start;margin-top:16px;line-height:1.55}
+.drop{border:2px dashed #c9cfd6;border-radius:20px;padding:34px 20px;text-align:center;background:#fafbfc;cursor:pointer;transition:.15s}
+.drop.on{border-color:var(--t);background:#f4f8d6}.drop b{font-size:18px;display:block;margin-bottom:6px}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.th{position:relative;width:112px}.th img{width:112px;height:140px;object-fit:cover;border-radius:10px;background:var(--l);display:block}
+.th span{font-size:11px;color:var(--s);display:block;margin-top:4px}.th.bad img{outline:3px solid var(--red)}
+.th button{position:absolute;top:4px;right:4px;border:0;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer}
+.seg{display:inline-flex;background:var(--bg);border-radius:10px;padding:3px;margin-top:12px}.seg label{padding:7px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+.seg input{display:none}.seg label:has(input:checked){background:#fff;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.kpi{background:var(--card);border-radius:18px;padding:18px}.kpi .k{color:var(--s);font-size:13px}
+.kpi .v{font-size:24px;font-weight:800;margin-top:6px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.kpi .d{color:var(--s);font-size:12px;margin-top:4px}
+@media(max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.bars{display:grid;grid-template-columns:60px 1fr 150px;gap:8px 10px;align-items:center;font-size:13px}
+.bar{height:8px;background:var(--l);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;border-radius:9px;background:var(--t)}.bar i.g{background:var(--g)}
+.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--s)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{color:var(--s);font-weight:500;text-align:right;padding:8px 6px;font-size:12px;white-space:nowrap}th:first-child{text-align:left}
+td{padding:10px 6px;border-top:1px solid var(--l);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td:first-child{text-align:left;white-space:normal}
+.ad{display:flex;align-items:center;gap:10px}.ad img{width:44px;height:55px;object-fit:cover;border-radius:6px;background:var(--l);flex:none}
+.tag{font-size:12px;border-radius:6px;padding:2px 8px;font-weight:600}
+.tag.on{background:#eef6c8;color:var(--gd)}.tag.off{background:#eef0f2;color:var(--s)}.tag.bad{background:#ffe8ea;color:var(--red)}.tag.wait{background:#e8f2ff;color:var(--blue)}
+.tw{overflow-x:auto}.log{font-size:13px;color:var(--s);line-height:1.9;margin-top:10px}
+.foot{margin-top:18px;text-align:center}
+</style>
+</head>
+<body><div class="w">
+<header><h1>인스타 광고</h1><span class="who" id="who"></span><span class="sp"></span><span id="hbtn"></span></header>
+<div id="app"><div class="c muted">불러오는 중…</div></div>
+<div class="foot muted" id="foot"></div>
+<div class="foot muted"><a href="privacy.html" style="color:inherit">개인정보 처리방침</a></div>
+</div>
+<script>
+"use strict";
+const CFG = window.AD_CONFIG || {}, D0 = CFG.defaults || {};
+const APP_ID = new URLSearchParams(location.search).get("app") || CFG.appId || "";
+const DEMO = !APP_ID || new URLSearchParams(location.search).get("demo") === "1";
+const VER = "v26.0";
+const SCOPE = "ads_management,ads_read,business_management,pages_show_list,pages_read_engagement,pages_manage_ads,instagram_basic";
+const CTA = {APPLY_NOW: "신청하기", LEARN_MORE: "자세히 알아보기", SIGN_UP: "가입하기", CONTACT_US: "문의하기", SHOP_NOW: "구매하기", SUBSCRIBE: "구독하기"};
+const OPTOUT = ["adapt_to_placement","add_text_overlay","description_automation","image_animation","image_background_gen","image_templates","image_touchups",
+  "media_type_automation","multi_photo_to_video","music_generation","replace_media_text","text_optimizations","text_overlay_translation","text_translation",
+  "video_highlights","video_to_image","generate_cta","creative_stickers","reveal_details_over_time","show_summary"];
+const KEY = "adapp:" + (DEMO ? "demo" : APP_ID);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const won = v => Math.round(Number(v || 0)).toLocaleString("ko-KR") + "원";
+const n0 = v => Math.round(Number(v || 0)).toLocaleString("ko-KR");
+const pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, a / b * 100)) : 0;
+let token = "", S = load(), cardTimer = null, dashTimer = null, queue = [];
+
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function settings() { return Object.assign({start: "", total: D0.total || 0}, D0, S.settings || {}); }
+function log(msg) { S.log = [`${new Date().toLocaleString("ko-KR", {month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"})} ${msg}`].concat(S.log || []).slice(0, 40); save(); }
+
+/* ================= 메타 연결 ================= */
+async function api(method, path, params = {}) {
+  if (DEMO) return Demo.call(method, path, params);
+  const q = new URLSearchParams({locale: "ko_KR"});
+  for (const [k, v] of Object.entries(params)) q.set(k, typeof v === "object" ? JSON.stringify(v) : v);
+  q.set("access_token", token);
+  const url = `https://graph.facebook.com/${VER}/${path}`;
+  for (let i = 0; i < 4; i++) {
+    const r = method === "GET" ? await fetch(`${url}?${q}`) : await fetch(url, {method: "POST", body: q});
+    const d = await r.json();
+    if (!d.error) return d;
+    if (d.error.is_transient || [1, 2, 4, 17, 32, 613].includes(d.error.code)) { await new Promise(r => setTimeout(r, 4000 * (i + 1))); continue; }
+    const e = new Error(d.error.error_user_msg || d.error.message); e.raw = d.error; throw e;
+  }
+  throw new Error("메타가 잠시 응답하지 않습니다. 조금 뒤 다시 시도해 주세요.");
+}
+const get = (p, q) => api("GET", p, q), post = (p, q) => api("POST", p, q);
+async function all(path, params) {
+  let d = await get(path, {limit: 200, ...params}), out = d.data || [];
+  while (!DEMO && d.paging && d.paging.next && out.length < 2000) { d = await (await fetch(d.paging.next)).json(); out = out.concat(d.data || []); }
+  return out;
+}
+
+function sdk() {
+  return new Promise(res => {
+    window.fbAsyncInit = () => { FB.init({appId: APP_ID, cookie: true, xfbml: false, version: VER}); res(); };
+    const s = document.createElement("script"); s.src = "https://connect.facebook.net/ko_KR/sdk.js"; s.async = true; document.head.appendChild(s);
+  });
+}
+function doLogin() {
+  if (DEMO) { token = "demo"; afterLogin(); return; }
+  FB.login(r => { if (r.authResponse) { token = r.authResponse.accessToken; afterLogin(); } else viewLogin("로그인이 취소됐습니다."); }, {scope: SCOPE});
+}
+function logout() { if (DEMO) { localStorage.removeItem(KEY); location.reload(); } else FB.logout(() => location.reload()); }
+
+/* ================= 화면: 1 로그인 ================= */
+function viewLogin(msg) {
+  $("#hbtn").innerHTML = ""; $("#who").textContent = "";
+  $("#app").innerHTML = `${DEMO ? demoNote() : ""}<div class="c" style="text-align:center;padding:44px 22px">
+    <h2 style="justify-content:center;font-size:22px">${esc(CFG.brand || "")} 인스타 광고</h2>
+    <p style="max-width:480px;margin:8px auto 4px">광고를 낼 인스타그램과 연결된 <b>Facebook(메타) 계정</b>으로 로그인하세요.<br>로그인 → 카드 등록 → 사진 선택 → 광고 시작, 이 순서로 인스타 광고가 나갑니다.</p>
+    <p class="muted" style="max-width:480px;margin:0 auto">비밀번호와 카드 번호는 메타 화면에만 입력됩니다. 인스타 계정만 있다면 인스타 앱 › 설정 › 계정 센터에서 Facebook 계정을 연결한 뒤 로그인하세요.</p>
+    <button class="btn fb full" style="max-width:360px" id="lg">Facebook으로 로그인</button>${msg ? `<div class="alert">${esc(msg)}</div>` : ""}</div>`;
+  $("#lg").onclick = doLogin;
+}
+const demoNote = () => `<div class="demo">시험 모드입니다. 메타에 아무것도 보내지 않고, 돈도 나가지 않습니다. 실제로 쓰려면 config.js에 메타 앱 번호를 넣으세요.</div>`;
+
+async function afterLogin() {
+  try {
+    const me = await get("me", {fields: "name"});
+    $("#who").textContent = me.name || "";
+    $("#hbtn").innerHTML = `<button class="btn lt sm" id="lo">로그아웃</button>`; $("#lo").onclick = logout;
+    if (!S.acct) return viewPick();
+    if ((S.ads || []).length) return viewDash();
+    viewCreate();
+  } catch (e) { viewLogin(e.message); }
+}
+
+/* ================= 화면: 2 계정 선택 ================= */
+async function viewPick(err) {
+  $("#app").innerHTML = `<div class="c muted">광고 계정을 불러오는 중…</div>`;
+  try {
+    const accts = await all("me/adaccounts", {fields: "name,account_id,currency,account_status"});
+    const pages = (await all("me/accounts", {fields: "name,instagram_business_account{id,username}"})).filter(p => p.instagram_business_account);
+    const krw = accts.filter(a => a.currency === "KRW");
+    $("#app").innerHTML = `${DEMO ? demoNote() : ""}<div class="c"><h2>광고 계정과 인스타 계정 선택</h2>
+      <p class="muted">광고비가 나갈 광고 계정</p>
+      ${accts.map((a, i) => `<label class="opt"><input type="radio" name="a" value="${esc(a.id)}" data-n="${esc(a.name)}" ${a.currency !== "KRW" ? "disabled" : ""} ${a === krw[0] ? "checked" : ""}>
+        <span>${esc(a.name)}<br><span class="muted">${esc(a.currency)}${a.currency !== "KRW" ? " · 원화 계정만 쓸 수 있습니다" : ""}</span></span></label>`).join("")}
+      ${krw.length ? "" : `<div class="note">원화 광고 계정이 없습니다. <a href="https://business.facebook.com/settings/ad-accounts" target="_blank">메타에서 광고 계정 만들기</a> — 통화 <b>KRW</b>, 시간대 <b>서울</b>로 만든 뒤 <a href="#" id="re1">다시 불러오기</a></div>`}
+      <p class="muted" style="margin-top:18px">광고를 낼 인스타 계정</p>
+      ${pages.map((p, i) => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-ig="${esc(p.instagram_business_account.id)}" data-u="${esc(p.instagram_business_account.username || "")}" ${i === 0 ? "checked" : ""}>
+        <span>@${esc(p.instagram_business_account.username || "")}<br><span class="muted">페이스북 페이지: ${esc(p.name)}</span></span></label>`).join("")}
+      ${pages.length ? "" : `<div class="note">페이스북 페이지에 연결된 인스타 <b>비즈니스(프로페셔널) 계정</b>이 없습니다. 인스타 앱 › 설정 › 계정 유형을 프로페셔널로 바꾸고 페이스북 페이지와 연결한 뒤 <a href="#" id="re2">다시 불러오기</a></div>`}
+      <button class="btn full" id="go" ${krw.length && pages.length ? "" : "disabled"}>이 계정으로 진행</button>${err ? `<div class="alert">${esc(err)}</div>` : ""}</div>`;
+    ["re1", "re2"].forEach(id => { const el = $("#" + id); if (el) el.onclick = e => { e.preventDefault(); viewPick(); }; });
+    $("#go").onclick = () => {
+      const a = document.querySelector("input[name=a]:checked"), p = document.querySelector("input[name=p]:checked");
+      Object.assign(S, {acct: a.value, acctName: a.dataset.n, page: p.value, ig: p.dataset.ig, igName: p.dataset.u}); save();
+      log(`광고 계정 '${a.dataset.n}' · @${p.dataset.u} 연결`); viewCreate();
+    };
+  } catch (e) { $("#app").innerHTML = `<div class="alert">${esc(e.message)}</div>`; }
+}
+
+async function account() { return get(S.acct, {fields: "name,currency,account_status,amount_spent,spend_cap,min_daily_budget,funding_source_details"}); }
+function days(st) { const s = st.start ? Date.parse(st.start) : Date.now(); return Math.max(1, (Date.parse(st.end) - s) / 864e5); }
+/* ================= 화면: 3 광고 만들기 (카드 · 사진 · 세팅 · 광고 시작) ================= */
+let lastAcct = null;
+function cardBox(acct) {
+  const card = acct.funding_source_details, aid = String(S.acct).replace("act_", "");
+  return `<div class="check"><span class="dot ${card ? "ok" : "no"}"></span><div style="flex:1"><b>결제 카드</b><br><span class="muted">${card ? esc(card.display_string) + " 등록됨" : "아직 없습니다. 메타 결제 화면에서 등록하면 이 화면이 알아서 확인합니다."}</span></div>
+      ${card ? "" : `<a class="btn fb sm" href="https://business.facebook.com/billing_hub/payment_settings/?asset_id=${aid}" target="_blank">카드 등록하기</a>${DEMO ? ` <button class="btn lt sm" id="dc">시험: 등록된 것으로</button>` : ""}`}</div>
+    ${card ? "" : `<p class="muted" style="margin:-4px 0 6px 38px">법인카드는 해외결제 허용 상태여야 합니다(메타는 해외 결제로 처리). 화면이 안 열리면 광고 관리자 › 결제 및 청구 › 결제 수단 추가.</p>`}
+    <div class="check"><span class="dot ${acct.account_status === 1 ? "ok" : "no"}"></span><div><b>광고 계정 상태</b><br><span class="muted">${acct.account_status === 1 ? "정상" : "확인 필요 (" + esc(acct.error || acct.account_status) + ")"}</span></div></div>`;
+}
+function paintCard(acct) {
+  lastAcct = acct; const b = $("#cardBox"); if (!b) return;
+  b.innerHTML = cardBox(acct);
+  if ($("#dc")) $("#dc").onclick = async () => { Demo.card = true; paintCard(await account()); };
+  updateStart();
+}
+
+async function viewCreate(err) {
+  const acct = await account().catch(e => ({error: e.message}));
+  const st = settings(), more = (S.ads || []).length > 0;
+  const ctaOpts = Object.entries(CTA).map(([k, v]) => `<option value="${k}" ${st.cta === k ? "selected" : ""}>${v}</option>`).join("");
+  $("#app").innerHTML = `${DEMO ? demoNote() : ""}
+  <div class="c"><h2>${more ? "새 광고 추가" : "광고 만들기"} <small>@${esc(S.igName)} · ${esc(S.acctName)}</small><span class="sp"></span>${more ? `<button class="btn lt sm" id="toDash">성과 보기</button>` : ""}</h2>
+    <p class="muted" style="margin-bottom:6px">① 카드 등록 → ② 사진 선택 → ③ 세팅 확인 → ④ 광고 시작</p></div>
+  <div class="c"><h2>① 결제 카드</h2><div id="cardBox"></div></div>
+  <div class="c"><h2>② 광고 사진</h2>
+    <div class="drop" id="drop"><b>광고 사진을 여기에 끌어다 놓기</b><span class="muted">또는 눌러서 고르기 · jpg·png · 1:1, 4:5, 9:16 · 여러 장이면 넘겨 보는 광고</span>
+    <input type="file" id="file" accept="image/jpeg,image/png" multiple hidden></div><div id="queue"></div></div>
+  <div class="c"><h2>③ 세팅</h2>
+    <div class="f">
+      <label>캠페인 이름</label><input id="s_name" value="${esc(st.name)}" ${more ? "disabled" : ""}>
+      <label>시작</label><input id="s_start" type="datetime-local" value="${esc(st.start)}" ${more ? "disabled" : ""}>
+      <label>끝</label><input id="s_end" type="datetime-local" value="${esc(st.end)}">
+      <label>총금액(원)</label><input id="s_total" inputmode="numeric" value="${st.total || ""}" placeholder="예: 300000">
+      <label>나이</label><div style="display:flex;gap:8px;align-items:center"><input id="s_amin" inputmode="numeric" value="${st.ageMin}" style="width:90px" ${more ? "disabled" : ""}> ~ <input id="s_amax" inputmode="numeric" value="${st.ageMax}" style="width:90px" ${more ? "disabled" : ""}><span class="muted">65 = 65세 이상</span></div>
+      <label>링크</label><input id="s_link" value="${esc(st.link)}">
+      <label>버튼</label><select id="s_cta">${ctaOpts}</select>
+      <label>본문</label><textarea id="s_msg">${esc(st.message)}</textarea>
+      <label>제목</label><input id="s_title" value="${esc(st.title)}">
+    </div>
+    <p class="muted" style="margin-top:10px">시작을 비우면 누르는 즉시 시작합니다. 끝 시각이 되면 메타가 광고를 스스로 멈추고, 총금액을 넘겨 결제되지 않습니다.${more ? " 금액과 끝 시각을 바꾸면 이미 나가는 광고에도 적용됩니다." : ""}</p></div>
+  <div class="c"><h2>④ 광고 시작</h2>
+    <label class="agree" style="margin-top:0"><input type="checkbox" id="agree"> <span id="agreeTxt"></span></label>
+    <button class="btn full" id="start" disabled>광고 시작</button><div class="muted" id="why" style="margin-top:8px;text-align:center"></div>
+    ${err ? `<div class="alert">${esc(err)}</div>` : ""}<div id="startErr"></div></div>`;
+  const drop = $("#drop"), file = $("#file");
+  drop.onclick = () => file.click(); file.onchange = () => addFiles(file.files);
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add("on"); }; drop.ondragleave = () => drop.classList.remove("on");
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("on"); addFiles(e.dataTransfer.files); };
+  if ($("#toDash")) $("#toDash").onclick = () => viewDash();
+  ["s_total", "s_end", "agree"].forEach(id => $("#" + id).addEventListener(id === "agree" ? "change" : "input", updateStart));
+  $("#start").onclick = startAds;
+  paintCard(acct); renderQueue();
+  watchCard(!acct.funding_source_details);
+}
+
+function readForm() {
+  const st = settings();
+  return {name: $("#s_name").value.trim(), start: $("#s_start").value, end: $("#s_end").value, total: Number(($("#s_total").value || "0").replace(/[^\d]/g, "")),
+    ageMin: Math.max(18, Number($("#s_amin").value) || 18), ageMax: Math.min(65, Number($("#s_amax").value) || 65), link: $("#s_link").value.trim(),
+    cta: $("#s_cta").value, message: $("#s_msg").value.trim(), title: $("#s_title").value.trim(), positions: st.positions || D0.positions};
+}
+function formErrors(ns, acct) {
+  const e = [];
+  if (!ns.name) e.push("캠페인 이름을 적어 주세요.");
+  if (!ns.end || Date.parse(ns.end) < Date.now() + 36e5) e.push("끝 시각은 지금보다 1시간 이상 뒤여야 합니다.");
+  if (ns.start && Date.parse(ns.start) >= Date.parse(ns.end)) e.push("시작이 끝보다 늦습니다.");
+  if (!ns.total) e.push("총금액을 적어 주세요.");
+  if (!/^https?:\/\//.test(ns.link)) e.push("링크는 https:// 로 시작해야 합니다.");
+  if (!ns.message) e.push("본문을 적어 주세요.");
+  const mdb = Number((acct || {}).min_daily_budget || 0), d = Math.ceil(days(ns));
+  if (mdb && ns.total < mdb * d) e.push(`메타 최소 금액보다 적습니다(하루 ${won(mdb)} × ${d}일 = ${won(mdb * d)} 이상).`);
+  const cap = Number((acct || {}).spend_cap || 0), left = cap - Number((acct || {}).amount_spent || 0);
+  if (cap && ns.total > left + (S.adset ? settings().total : 0)) e.push(`광고 계정 지출 한도의 남은 금액(${won(left)})보다 큽니다.`);
+  return e;
+}
+function updateStart() {
+  const btn = $("#start"); if (!btn) return;
+  const t = Number(($("#s_total").value || "0").replace(/[^\d]/g, "")), e = $("#s_end").value;
+  $("#agreeTxt").innerHTML = `${e ? e.replace("T", " ") : "끝 시각"}까지 총 <b>${t ? won(t) : "_원"}</b> 안에서 이 광고 계정에 등록된 카드로 결제되는 것에 동의합니다.`;
+  const why = [];
+  if (!lastAcct || !lastAcct.funding_source_details) why.push("① 카드를 등록해 주세요");
+  if (!queue.length) why.push("② 사진을 골라 주세요");
+  else if (queue.some(q => q.bad)) why.push("② 맞지 않는 사진을 빼 주세요");
+  if (!$("#agree").checked) why.push("④ 결제 동의에 체크해 주세요");
+  btn.disabled = why.length > 0; $("#why").textContent = why.join(" · ");
+}
+
+async function startAds() {
+  const btn = $("#start"), box = $("#startErr"); box.innerHTML = "";
+  const ns = readForm(), acct = await account().catch(() => lastAcct), errs = formErrors(ns, acct);
+  if (!acct || !acct.funding_source_details) errs.push("결제 카드가 아직 확인되지 않았습니다.");
+  if (errs.length) { box.innerHTML = `<div class="alert">${esc(errs.join(" "))}</div>`; return; }
+  const mode = (document.querySelector("input[name=mode]:checked") || {}).value || "one", base = ($("#adname") || {}).value?.trim() || "광고";
+  if (!confirm(`${ns.end.replace("T", " ")}까지 총 ${won(ns.total)} 안에서 광고를 시작합니다.`)) return;
+  btn.disabled = true; btn.textContent = "메타에 올리는 중…";
+  try {
+    const old = settings(); S.settings = ns; S.consent = true; save();
+    if (S.adset && (old.total !== ns.total || old.end !== ns.end)) { await post(S.adset, {lifetime_budget: ns.total, end_time: iso(ns.end)}); log(`금액·기간 변경: ${ns.end.replace("T", " ")}까지 ${won(ns.total)}`); }
+    else if (!S.adset) log(`세팅: ${ns.end.replace("T", " ")}까지 ${won(ns.total)}`);
+    await ensureCampaign();
+    if (mode === "one" || queue.length === 1) await makeAd(queue, base);
+    else for (const [i, q] of queue.entries()) await makeAd([q], `${base} ${i + 1}`);
+    queue = [];
+    const on = await maybeActivate();
+    viewDash(on ? "광고를 시작했습니다. 메타 심사(보통 하루 안)가 끝나면 인스타에 노출됩니다." : "광고를 올렸지만 아직 켜지지 않았습니다. 카드·계정 상태를 확인해 주세요.");
+  } catch (e) { btn.disabled = false; btn.textContent = "다시 시도"; box.innerHTML = `<div class="alert">${esc(e.message)}</div>`; }
+}
+const iso = t => new Date(t).toISOString();
+
+function watchCard(on) {
+  clearInterval(cardTimer); cardTimer = null; if (!on) return;
+  cardTimer = setInterval(async () => {
+    const a = await account().catch(() => null);
+    if (a && a.funding_source_details) { clearInterval(cardTimer); cardTimer = null; log(`카드 확인: ${a.funding_source_details.display_string}`);
+      await maybeActivate(); if ($("#cardBox")) paintCard(a); else dash(); }
+  }, DEMO ? 2000 : 10000);
+}
+
+/* ================= 광고 만들기 ================= */
+async function ensureCampaign() {
+  const st = settings();
+  if (S.campaign) { try { await get(S.campaign, {fields: "id"}); } catch (e) { S.campaign = S.adset = null; } }
+  if (!S.campaign) {
+    S.campaign = (await post(`${S.acct}/campaigns`, {name: st.name, objective: "OUTCOME_TRAFFIC", status: "PAUSED", buying_type: "AUCTION",
+      special_ad_categories: [], is_adset_budget_sharing_enabled: false})).id; save(); log("캠페인 만듦");
+  }
+  if (!S.adset) {
+    const t = {geo_locations: {countries: ["KR"]}, age_min: st.ageMin, age_max: st.ageMax, targeting_automation: {advantage_audience: 0},
+      publisher_platforms: ["instagram"], instagram_positions: st.positions || D0.positions};
+    const p = {name: st.name, campaign_id: S.campaign, lifetime_budget: st.total, end_time: iso(st.end), billing_event: "IMPRESSIONS",
+      optimization_goal: "LINK_CLICKS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: t, status: "PAUSED"};
+    if (st.start && Date.parse(st.start) > Date.now() + 6e5) p.start_time = iso(st.start);
+    S.adset = (await post(`${S.acct}/adsets`, p)).id; save(); log(`광고 세트 만듦: ${won(st.total)}`);
+  }
+}
+async function uploadImage(f) {
+  const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(f.file); });
+  const r = await post(`${S.acct}/adimages`, {bytes: b64, name: f.file.name});
+  return Object.values(r.images)[0].hash;
+}
+async function postCreative(spec) {
+  let feats = spec.degrees_of_freedom_spec.creative_features_spec;
+  for (let i = 0; i < OPTOUT.length + 2; i++) {
+    try { return (await post(`${S.acct}/adcreatives`, spec)).id; }
+    catch (e) {
+      const m = JSON.stringify(e.raw || e.message); const bad = Object.keys(feats || {}).filter(k => m.includes(k));
+      if (feats && bad.length) { bad.forEach(k => delete feats[k]); continue; }
+      if (feats && /creative_features_spec|degrees_of_freedom/.test(m)) { delete spec.degrees_of_freedom_spec; feats = null; continue; }
+      throw e;
+    }
+  }
+}
+async function makeAd(files, name) {
+  const st = settings(), cta = {type: st.cta, value: {link: st.link}};
+  const hashes = []; for (const f of files) { f.state = "올리는 중"; renderQueue(); hashes.push(await uploadImage(f)); f.state = "올림"; renderQueue(); }
+  const link_data = files.length === 1
+    ? {link: st.link, message: st.message, name: st.title, image_hash: hashes[0], call_to_action: cta}
+    : {link: st.link, message: st.message, call_to_action: cta, multi_share_optimized: false, multi_share_end_card: false,
+       child_attachments: hashes.map(h => ({image_hash: h, link: st.link, name: st.title, call_to_action: cta}))};
+  const spec = {name: `${st.name} · ${name}`, object_story_spec: {page_id: S.page, instagram_user_id: S.ig, link_data},
+    degrees_of_freedom_spec: {creative_features_spec: Object.fromEntries(OPTOUT.map(k => [k, {enroll_status: "OPT_OUT"}]))}};
+  const cr = await postCreative(spec);
+  const ad = (await post(`${S.acct}/ads`, {name, adset_id: S.adset, creative: {creative_id: cr}, status: "PAUSED"})).id;
+  S.ads = (S.ads || []).concat([{id: ad, name, n: files.length, at: Date.now()}]); save(); log(`광고 '${name}' 만듦 (사진 ${files.length}장)`);
+}
+async function maybeActivate() {
+  if (!S.consent || !S.adset || !(S.ads || []).length) return false;
+  const a = await account().catch(() => null);
+  if (!a || !a.funding_source_details || a.account_status !== 1) return false;
+  for (const ad of S.ads) if (!ad.userPaused && !ad.on) { await post(ad.id, {status: "ACTIVE"}); ad.on = true; }
+  await post(S.adset, {status: "ACTIVE"}); await post(S.campaign, {status: "ACTIVE"});
+  save(); log("집행 시작"); return true;
+}
+
+/* ================= 사진 고르기 ================= */
+function checkImage(file) {
+  return new Promise(res => { const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const r = im.width / im.height, shapes = [[1, "1:1"], [.8, "4:5"], [9 / 16, "9:16"], [1.91, "1.91:1"]];
+      const s = shapes.find(([v]) => Math.abs(r - v) / v < .03);
+      const bad = !s ? `비율 ${im.width}×${im.height}은 인스타 광고에 맞지 않습니다(1:1·4:5·9:16)` : im.width < 600 ? "가로 600px보다 작습니다" : file.size > 30e6 ? "30MB를 넘습니다" : "";
+      res({file, url, w: im.width, h: im.height, shape: s ? s[1] : "", bad, state: ""}); };
+    im.onerror = () => res({file, url, bad: "사진을 읽을 수 없습니다(jpg·png만)", state: ""}); im.src = url; });
+}
+async function addFiles(list) {
+  const imgs = [...list].filter(f => /image\/(jpeg|png)/.test(f.type));
+  for (const f of imgs) queue.push(await checkImage(f));
+  queue.sort((a, b) => a.file.name.localeCompare(b.file.name, "ko", {numeric: true}));
+  renderQueue();
+}
+function renderQueue() {
+  const box = $("#queue"); if (!box) return;
+  if (!queue.length) { box.innerHTML = ""; updateStart(); return; }
+  const bad = queue.filter(q => q.bad), mode = (document.querySelector("input[name=mode]:checked") || {}).value || "one";
+  box.innerHTML = `<div class="thumbs">${queue.map((q, i) => `<div class="th ${q.bad ? "bad" : ""}"><img src="${q.url}"><button data-x="${i}">×</button><span>${esc(q.state || q.shape || "")} ${esc(q.file.name)}</span></div>`).join("")}</div>
+    ${bad.map(q => `<div class="alert">${esc(q.file.name)}: ${esc(q.bad)}</div>`).join("")}
+    ${queue.length > 1 ? `<div class="seg"><label><input type="radio" name="mode" value="one" ${mode === "one" ? "checked" : ""}>넘겨 보는 광고 1개 (${Math.min(queue.length, 10)}장)</label><label><input type="radio" name="mode" value="each" ${mode === "each" ? "checked" : ""}>사진마다 광고 1개 (${queue.length}개)</label></div>` : ""}
+    ${mode === "one" && queue.length > 10 ? `<div class="alert">넘겨 보는 광고는 10장까지입니다.</div>` : ""}
+    <div class="f" style="margin-top:12px"><label>광고 이름</label><input id="adname" value="${esc(($("#adname") || {}).value || queue[0].file.name.replace(/\.[^.]+$/, ""))}"></div>`;
+  box.querySelectorAll("[data-x]").forEach(b => b.onclick = () => { queue.splice(+b.dataset.x, 1); renderQueue(); });
+  box.querySelectorAll("input[name=mode]").forEach(r => r.onchange = renderQueue);
+  if (mode === "one" && queue.length > 10) queue.forEach(q => q.bad = q.bad || "");
+  updateStart();
+  if ($("#start") && mode === "one" && queue.length > 10) { $("#start").disabled = true; $("#why").textContent = "넘겨 보는 광고는 10장까지입니다"; }
+}
+
+/* ================= 화면: 4 성과 ================= */
+async function viewDash(msg) {
+  const st = settings();
+  $("#app").innerHTML = `${DEMO ? demoNote() : ""}${msg ? `<div class="note">${esc(msg)}</div>` : ""}<div id="warn"></div>
+    <div class="c"><h2>${esc(st.name)} <small>${esc(st.end.replace("T", " "))}까지 총 ${won(st.total)}</small><span class="sp"></span>
+      <button class="btn sm" id="new">새 광고 추가</button> <button class="btn lt sm" id="set">금액·기간 바꾸기</button></h2>
+      <p class="muted">인스타 피드·스토리·릴스·탐색 · ${st.ageMin}~${st.ageMax}${st.ageMax >= 65 ? "+" : ""}세 · 버튼 '${esc(CTA[st.cta] || st.cta)}' · @${esc(S.igName)}</p></div>
+    <div id="dash"><div class="c muted">성과를 불러오는 중…</div></div>
+    <div class="c"><h2>기록</h2><div class="log">${(S.log || []).map(esc).join("<br>") || "—"}</div>
+      <p style="margin-top:12px"><button class="btn lt sm" id="chg">광고 계정 바꾸기</button></p></div>`;
+  $("#new").onclick = () => viewCreate(); $("#set").onclick = () => viewCreate();
+  $("#chg").onclick = () => { if (confirm("다른 광고 계정으로 바꿀까요? 지금 나가는 광고는 그대로 계속 나갑니다.")) { Object.assign(S, {acct: null, campaign: null, adset: null, ads: [], consent: false}); save(); viewPick(); } };
+  dash();
+  clearInterval(dashTimer); dashTimer = setInterval(dash, 5 * 60 * 1000);
+}
+
+const ST = {ACTIVE: ["집행 중", "on"], PAUSED: ["멈춤", "off"], CAMPAIGN_PAUSED: ["멈춤", "off"], ADSET_PAUSED: ["멈춤", "off"], IN_PROCESS: ["처리 중", "wait"],
+  WITH_ISSUES: ["문제 있음", "bad"], PENDING_REVIEW: ["심사 중", "wait"], DISAPPROVED: ["반려", "bad"], PREAPPROVED: ["심사 통과", "wait"], PENDING_BILLING_INFO: ["결제 정보 필요", "bad"], ARCHIVED: ["보관", "off"], DELETED: ["삭제", "off"]};
+const tag = s => { const [t, c] = ST[s] || [s, "off"]; return `<span class="tag ${c}">${esc(t)}</span>`; };
+
+async function dash() {
+  if (!$("#dash")) return;
+  try {
+    const [acct, ads, ins, daily] = await Promise.all([
+      account(),
+      all(`${S.acct}/ads`, {fields: "name,adset_id,campaign_id,effective_status,status,creative{thumbnail_url,image_url},ad_review_feedback"}),
+      all(`${S.acct}/insights`, {level: "ad", date_preset: "maximum", fields: "ad_id,spend,impressions,reach,inline_link_clicks"}),
+      all(`${S.acct}/insights`, {level: "account", date_preset: "last_30d", time_increment: 1, fields: "spend"}),
+    ]);
+    const mine = new Set((S.ads || []).map(a => a.id));
+    const sum = (rows, k) => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
+    const myIns = ins.filter(r => mine.has(r.ad_id)), sp = sum(myIns, "spend"), im = sum(myIns, "impressions"), ck = sum(myIns, "inline_link_clicks"), rc = sum(myIns, "reach");
+    const st = settings(), t0 = st.start ? Date.parse(st.start) : Math.min(...(S.ads || []).map(a => a.at), Date.now()), t1 = Date.parse(st.end);
+    const tP = pct(Date.now() - t0, t1 - t0), bP = pct(sp, st.total);
+    const warns = [];
+    if (!acct.funding_source_details) { warns.push("결제 카드가 없습니다. 광고가 나가지 않습니다. 메타 결제 화면에서 카드를 등록해 주세요."); if (!cardTimer) watchCard(true); }
+    if (acct.account_status !== 1) warns.push(`광고 계정 상태가 정상이 아닙니다(${acct.account_status}). 결제 미납·정지일 수 있습니다.`);
+    ads.filter(a => mine.has(a.id) && ["DISAPPROVED", "WITH_ISSUES"].includes(a.effective_status)).forEach(a => warns.push(`'${a.name}' 광고가 ${a.effective_status === "DISAPPROVED" ? "메타 심사에서 반려" : "문제 상태"}입니다. 사진이나 문구를 바꿔 다시 올려 주세요.`));
+    if (Date.now() > t1) warns.push("광고 기간이 끝났습니다. 계속하려면 '기간·금액·문구'에서 끝 시각과 금액을 늘리세요.");
+    $("#warn").innerHTML = warns.map(w => `<div class="alert">${esc(w)}</div>`).join("");
+    const rows = ads.filter(a => mine.has(a.id)).map(a => { const r = ins.find(x => x.ad_id === a.id) || {}; return {...a, sp: +r.spend || 0, im: +r.impressions || 0, ck: +r.inline_link_clicks || 0}; })
+      .sort((a, b) => (b.ck / (b.im || 1)) - (a.ck / (a.im || 1)));
+    let chart = "";
+    if (daily.length) { const max = Math.max(...daily.map(d => +d.spend || 0), 1), bw = 100 / daily.length;
+      chart = `<div class="c"><h2>날짜별 쓴 돈 <small>최근 30일 · 최고 ${won(max)}</small></h2><svg width="100%" height="150">${daily.map((d, i) => { const h = (+d.spend || 0) / max * 120;
+        return `<rect x="${i * bw + bw * .15}%" y="${130 - h}" width="${bw * .7}%" height="${h}" rx="3" fill="#191f28"><title>${d.date_start} ${won(d.spend)}</title></rect>`; }).join("")}
+        <text x="0" y="146" font-size="11" fill="#6b7684">${daily[0].date_start.slice(5)}</text><text x="100%" y="146" font-size="11" fill="#6b7684" text-anchor="end">${daily[daily.length - 1].date_start.slice(5)}</text></svg></div>`; }
+    $("#dash").innerHTML = `<div class="kpis">
+        <div class="kpi"><div class="k">쓴 돈</div><div class="v">${won(sp)}</div><div class="d">총 ${won(st.total)} 중 ${Math.round(bP)}%</div></div>
+        <div class="kpi"><div class="k">노출</div><div class="v">${n0(im)}</div><div class="d">본 사람 ${n0(rc)}명</div></div>
+        <div class="kpi"><div class="k">링크 클릭</div><div class="v">${n0(ck)}</div><div class="d">클릭률 ${im ? (ck / im * 100).toFixed(2) : "0.00"}%</div></div>
+        <div class="kpi"><div class="k">클릭당 비용</div><div class="v">${ck ? won(sp / ck) : "-"}</div><div class="d">광고 ${rows.length}개</div></div></div>
+      <div class="c"><h2>진행률</h2><div class="bars">
+        <span class="muted">기간</span><div class="bar"><i style="width:${tP}%"></i></div><span class="num">${Math.round(tP)}% · ${esc(st.end.slice(5, 10).replace("-", "."))} 종료</span>
+        <span class="muted">예산</span><div class="bar"><i class="g" style="width:${bP}%"></i></div><span class="num">${won(sp)} / ${won(st.total)}</span></div>
+        ${tP > 10 && bP > tP * 1.3 ? `<p class="muted" style="margin-top:10px;color:var(--red)">계획보다 빨리 쓰고 있습니다. 메타가 남은 기간에 맞춰 줄입니다.</p>` : ""}
+        ${tP > 30 && bP < tP * .5 ? `<p class="muted" style="margin-top:10px;color:var(--blue)">노출이 덜 나가고 있습니다. 대상 나이를 넓히거나 사진을 더 올려 보세요.</p>` : ""}</div>
+      ${chart}
+      <div class="c"><h2>소재별 성과 <small>클릭률 높은 순 · 잘 먹히는 사진을 찾는 표</small></h2><div class="tw"><table>
+        <tr><th>광고</th><th>상태</th><th>쓴 돈</th><th>노출</th><th>클릭</th><th>클릭률</th><th></th></tr>
+        ${rows.map(a => `<tr><td><div class="ad"><img src="${esc((a.creative || {}).thumbnail_url || (a.creative || {}).image_url || "")}" alt=""><span>${esc(a.name)}</span></div></td><td>${tag(a.effective_status)}</td>
+          <td>${won(a.sp)}</td><td>${n0(a.im)}</td><td>${n0(a.ck)}</td><td>${a.im ? (a.ck / a.im * 100).toFixed(2) : "0.00"}%</td>
+          <td><button class="btn lt sm" data-ad="${a.id}" data-to="${a.status === "ACTIVE" ? "PAUSED" : "ACTIVE"}">${a.status === "ACTIVE" ? "멈추기" : "켜기"}</button></td></tr>`).join("") || `<tr><td colspan="7" class="muted">아직 광고가 없습니다. 위에 사진을 올려 주세요.</td></tr>`}
+      </table></div></div>`;
+    document.querySelectorAll("[data-ad]").forEach(b => b.onclick = async () => {
+      const to = b.dataset.to; if (to === "ACTIVE" && !confirm("이 광고를 다시 켤까요? 광고비가 다시 나갑니다.")) return;
+      try { await post(b.dataset.ad, {status: to}); const x = (S.ads || []).find(a => a.id === b.dataset.ad); if (x) { x.userPaused = to === "PAUSED"; x.on = to === "ACTIVE"; }
+        if (to === "ACTIVE") { await post(S.adset, {status: "ACTIVE"}); await post(S.campaign, {status: "ACTIVE"}); }
+        save(); log(`'${x ? x.name : "광고"}' ${to === "ACTIVE" ? "켬" : "멈춤"}`); dash(); } catch (e) { alert(e.message); }
+    });
+    $("#foot").textContent = `마지막 갱신 ${new Date().toLocaleTimeString("ko-KR")} · 5분마다 자동 갱신`;
+  } catch (e) { $("#dash").innerHTML = `<div class="alert">${esc(e.message)}</div>`; }
+}
+
+/* ================= 시험 모드: 메타 흉내 ================= */
+const Demo = {
+  card: false, n: 0, obj: {}, imgs: {},
+  call(method, path, p) {
+    const id = () => String(9e5 + (++this.n));
+    return new Promise(res => setTimeout(() => res(this.reply(method, path, p, id)), 120));
+  },
+  reply(method, path, p, id) {
+    if (path === "me") return {name: "시험 광고주"};
+    if (path === "me/adaccounts") return {data: [{id: "act_1", name: "논스 광고 계정", currency: "KRW", account_status: 1}]};
+    if (path === "me/accounts") return {data: [{id: "p1", name: "논스", instagram_business_account: {id: "ig1", username: "nonce.community"}}]};
+    if (path === "act_1") return {name: "논스 광고 계정", currency: "KRW", account_status: 1, amount_spent: "0", spend_cap: "", min_daily_budget: 1000,
+      funding_source_details: this.card ? {display_string: "Visa *1234"} : null};
+    if (method === "POST" && path.endsWith("/adimages")) { const h = "h" + id(); this.imgs[h] = "data:image/jpeg;base64," + p.bytes; return {images: {x: {hash: h}}}; }
+    if (method === "POST" && /\/(campaigns|adsets|adcreatives|ads)$/.test(path)) { const i = id(); this.obj[i] = {...p, kind: path.split("/")[1]}; return {id: i}; }
+    if (method === "POST" && this.obj[path]) { Object.assign(this.obj[path], p); return {success: true}; }
+    if (path.endsWith("/ads")) return {data: Object.entries(this.obj).filter(([, o]) => o.kind === "ads").map(([i, o]) => {
+      const cr = this.obj[(typeof o.creative === "string" ? JSON.parse(o.creative) : o.creative).creative_id] || {};
+      const oss = typeof cr.object_story_spec === "string" ? JSON.parse(cr.object_story_spec) : (cr.object_story_spec || {});
+      const ld = oss.link_data || {}, h = ld.image_hash || ((ld.child_attachments || [])[0] || {}).image_hash;
+      return {id: i, name: o.name, status: o.status, effective_status: o.status === "ACTIVE" ? "ACTIVE" : "PAUSED", creative: {thumbnail_url: this.imgs[h]}}; })};
+    if (path.endsWith("/insights") && p.level === "ad") return {data: Object.entries(this.obj).filter(([, o]) => o.kind === "ads" && o.status === "ACTIVE")
+      .map(([i], k) => ({ad_id: i, spend: 12000 + k * 3100, impressions: 5200 + k * 900, reach: 4100 + k * 700, inline_link_clicks: 61 + k * 17}))};
+    if (path.endsWith("/insights")) return {data: Object.values(this.obj).some(o => o.status === "ACTIVE") ? Array.from({length: 5}, (_, i) => ({date_start: new Date(Date.now() - (4 - i) * 864e5).toISOString().slice(0, 10), spend: [6000, 9000, 11000, 10000, 8000][i]})) : []};
+    return {id: path};
+  }
+};
+
+/* ================= 시작 ================= */
+if (location.protocol === "file:") {
+  $("#app").innerHTML = `<div class="alert">이 파일은 더블클릭으로 열면 메타 로그인이 막힙니다. 받은 인터넷 주소로 열어 주세요.</div>`;
+} else if (DEMO) viewLogin();
+else sdk().then(() => FB.getLoginStatus(r => { if (r.status === "connected") { token = r.authResponse.accessToken; afterLogin(); } else viewLogin(); }));
+</script>
+</body>
+</html>
