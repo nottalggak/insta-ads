@@ -120,7 +120,8 @@ function sdk() {
 }
 function doLogin() {
   if (DEMO) { token = "demo"; afterLogin(); return; }
-  FB.login(r => { if (r.authResponse) { token = r.authResponse.accessToken; afterLogin(); } else viewLogin("로그인이 취소됐습니다."); }, {scope: SCOPE});
+  const opt = CFG.configId ? {config_id: CFG.configId} : {scope: SCOPE};
+  FB.login(r => { if (r.authResponse) { token = r.authResponse.accessToken; afterLogin(); } else viewLogin("로그인이 취소됐습니다."); }, opt);
 }
 function logout() { if (DEMO) { localStorage.removeItem(KEY); location.reload(); } else FB.logout(() => location.reload()); }
 
@@ -152,7 +153,10 @@ async function viewPick(err) {
   $("#app").innerHTML = `<div class="c muted">광고 계정을 불러오는 중…</div>`;
   try {
     const accts = await all("me/adaccounts", {fields: "name,account_id,currency,account_status"});
-    const pages = (await all("me/accounts", {fields: "name,instagram_business_account{id,username}"})).filter(p => p.instagram_business_account);
+    let pages;
+    try { pages = await all("me/accounts", {fields: "name,instagram_business_account{id,username}"}); }
+    catch (e) { pages = await all("me/accounts", {fields: "name,instagram_business_account"}); }   // 인스타 이름 권한이 없을 때
+    pages = pages.filter(p => p.instagram_business_account);
     const krw = accts.filter(a => a.currency === "KRW");
     $("#app").innerHTML = `${DEMO ? demoNote() : ""}<div class="c"><h2>광고 계정과 인스타 계정 선택</h2>
       <p class="muted">광고비가 나갈 광고 계정</p>
@@ -160,8 +164,8 @@ async function viewPick(err) {
         <span>${esc(a.name)}<br><span class="muted">${esc(a.currency)}${a.currency !== "KRW" ? " · 원화 계정만 쓸 수 있습니다" : ""}</span></span></label>`).join("")}
       ${krw.length ? "" : `<div class="note">원화 광고 계정이 없습니다. <a href="https://business.facebook.com/settings/ad-accounts" target="_blank">메타에서 광고 계정 만들기</a> — 통화 <b>KRW</b>, 시간대 <b>서울</b>로 만든 뒤 <a href="#" id="re1">다시 불러오기</a></div>`}
       <p class="muted" style="margin-top:18px">광고를 낼 인스타 계정</p>
-      ${pages.map((p, i) => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-ig="${esc(p.instagram_business_account.id)}" data-u="${esc(p.instagram_business_account.username || "")}" ${i === 0 ? "checked" : ""}>
-        <span>@${esc(p.instagram_business_account.username || "")}<br><span class="muted">페이스북 페이지: ${esc(p.name)}</span></span></label>`).join("")}
+      ${pages.map((p, i) => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-ig="${esc(p.instagram_business_account.id)}" data-u="${esc(p.instagram_business_account.username || p.name)}" ${i === 0 ? "checked" : ""}>
+        <span>${p.instagram_business_account.username ? "@" + esc(p.instagram_business_account.username) : "인스타 계정"}<br><span class="muted">페이스북 페이지: ${esc(p.name)}</span></span></label>`).join("")}
       ${pages.length ? "" : `<div class="note">페이스북 페이지에 연결된 인스타 <b>비즈니스(프로페셔널) 계정</b>이 없습니다. 인스타 앱 › 설정 › 계정 유형을 프로페셔널로 바꾸고 페이스북 페이지와 연결한 뒤 <a href="#" id="re2">다시 불러오기</a></div>`}
       <button class="btn full" id="go" ${krw.length && pages.length ? "" : "disabled"}>이 계정으로 진행</button>${err ? `<div class="alert">${esc(err)}</div>` : ""}</div>`;
     ["re1", "re2"].forEach(id => { const el = $("#" + id); if (el) el.onclick = e => { e.preventDefault(); viewPick(); }; });
