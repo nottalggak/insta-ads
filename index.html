@@ -79,14 +79,18 @@ const OPTOUT = ["adapt_to_placement","add_text_overlay","description_automation"
 const KEY = "adapp:" + (DEMO ? "demo" : APP_ID);
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const won = v => Math.round(Number(v || 0)).toLocaleString("ko-KR") + "원";
+const ZERO_DEC = ["KRW", "JPY", "VND", "CLP", "COP", "HUF", "ISK", "IDR", "PYG", "TWD", "UGX"];
+const OFF = () => ZERO_DEC.includes(S.cur || "KRW") ? 1 : 100;          // 메타 금액 최소 단위 (달러 = 센트)
+const won = v => { const c = S.cur || "KRW", n = Number(v || 0);
+  return c === "KRW" ? Math.round(n).toLocaleString("ko-KR") + "원" : n.toLocaleString("ko-KR", {style: "currency", currency: c, maximumFractionDigits: 2}); };
+const num = v => Number(String(v || "0").replace(/[^\d.]/g, "")) || 0;
 const n0 = v => Math.round(Number(v || 0)).toLocaleString("ko-KR");
 const pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, a / b * 100)) : 0;
 let token = "", S = load(), cardTimer = null, dashTimer = null, queue = [];
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-function settings() { return Object.assign({start: "", total: D0.total || 0}, D0, S.settings || {}); }
+function settings() { return Object.assign({start: "", total: (S.cur || "KRW") === "KRW" ? (D0.total || 0) : 0}, D0, S.settings || {}); }
 function log(msg) { S.log = [`${new Date().toLocaleString("ko-KR", {month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"})} ${msg}`].concat(S.log || []).slice(0, 40); save(); }
 
 /* ================= 메타 연결 ================= */
@@ -150,35 +154,56 @@ async function afterLogin() {
 
 /* ================= 화면: 2 계정 선택 ================= */
 async function viewPick(err) {
-  $("#app").innerHTML = `<div class="c muted">광고 계정을 불러오는 중…</div>`;
-  try {
-    const accts = await all("me/adaccounts", {fields: "name,account_id,currency,account_status"});
-    let pages;
-    try { pages = await all("me/accounts", {fields: "name,instagram_business_account{id,username}"}); }
-    catch (e) { pages = await all("me/accounts", {fields: "name,instagram_business_account"}); }   // 인스타 이름 권한이 없을 때
-    pages = pages.filter(p => p.instagram_business_account);
-    const krw = accts.filter(a => a.currency === "KRW");
-    $("#app").innerHTML = `${DEMO ? demoNote() : ""}<div class="c"><h2>광고 계정과 인스타 계정 선택</h2>
-      <p class="muted">광고비가 나갈 광고 계정</p>
-      ${accts.map((a, i) => `<label class="opt"><input type="radio" name="a" value="${esc(a.id)}" data-n="${esc(a.name)}" ${a.currency !== "KRW" ? "disabled" : ""} ${a === krw[0] ? "checked" : ""}>
-        <span>${esc(a.name)}<br><span class="muted">${esc(a.currency)}${a.currency !== "KRW" ? " · 원화 계정만 쓸 수 있습니다" : ""}</span></span></label>`).join("")}
-      ${krw.length ? "" : `<div class="note">원화 광고 계정이 없습니다. <a href="https://business.facebook.com/settings/ad-accounts" target="_blank">메타에서 광고 계정 만들기</a> — 통화 <b>KRW</b>, 시간대 <b>서울</b>로 만든 뒤 <a href="#" id="re1">다시 불러오기</a></div>`}
-      <p class="muted" style="margin-top:18px">광고를 낼 인스타 계정</p>
-      ${pages.map((p, i) => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-ig="${esc(p.instagram_business_account.id)}" data-u="${esc(p.instagram_business_account.username || p.name)}" ${i === 0 ? "checked" : ""}>
-        <span>${p.instagram_business_account.username ? "@" + esc(p.instagram_business_account.username) : "인스타 계정"}<br><span class="muted">페이스북 페이지: ${esc(p.name)}</span></span></label>`).join("")}
-      ${pages.length ? "" : `<div class="note">페이스북 페이지에 연결된 인스타 <b>비즈니스(프로페셔널) 계정</b>이 없습니다. 인스타 앱 › 설정 › 계정 유형을 프로페셔널로 바꾸고 페이스북 페이지와 연결한 뒤 <a href="#" id="re2">다시 불러오기</a></div>`}
-      <button class="btn full" id="go" ${krw.length && pages.length ? "" : "disabled"}>이 계정으로 진행</button>${err ? `<div class="alert">${esc(err)}</div>` : ""}</div>`;
-    ["re1", "re2"].forEach(id => { const el = $("#" + id); if (el) el.onclick = e => { e.preventDefault(); viewPick(); }; });
-    $("#go").onclick = () => {
-      const a = document.querySelector("input[name=a]:checked"), p = document.querySelector("input[name=p]:checked");
-      Object.assign(S, {acct: a.value, acctName: a.dataset.n, page: p.value, ig: p.dataset.ig, igName: p.dataset.u}); save();
-      log(`광고 계정 '${a.dataset.n}' · @${p.dataset.u} 연결`); viewCreate();
-    };
-  } catch (e) { $("#app").innerHTML = `<div class="alert">${esc(e.message)}</div>`; }
+  $("#app").innerHTML = `<div class="c muted">광고 계정과 인스타 계정을 찾는 중…</div>`;
+  const diag = [];
+  const safe = async (label, fn) => { try { return await fn(); } catch (e) { diag.push(`${label}: ${e.message}`); return []; } };
+  const accts = await safe("광고 계정", () => all("me/adaccounts", {fields: "name,account_id,currency,account_status"}));
+  let pages = await safe("페이지", () => all("me/accounts", {fields: "name,instagram_business_account{id,username},connected_instagram_account{id,username}"}));
+  if (!pages.length) pages = await safe("페이지(간단히)", () => all("me/accounts", {fields: "name,instagram_business_account"}));
+  // 인스타 계정은 페이지 · 광고 계정 · 비즈니스 세 곳에서 모두 찾는다
+  const ig = new Map(), addIg = (x, page, from) => { if (x && x.id && !ig.has(x.id)) ig.set(x.id, {id: x.id, username: x.username || "", page, from}); };
+  pages.forEach(p => { addIg(p.instagram_business_account, p.id, "페이지"); addIg(p.connected_instagram_account, p.id, "페이지"); });
+  for (const a of accts.slice(0, 10)) (await safe(`'${a.name}' 인스타`, () => all(`${a.id}/instagram_accounts`, {fields: "id,username"}))).forEach(x => addIg(x, null, "광고 계정"));
+  const biz = await safe("비즈니스", () => all("me/businesses", {fields: "name"}));
+  for (const b of biz.slice(0, 5)) {
+    (await safe(`'${b.name}' 인스타`, () => all(`${b.id}/owned_instagram_accounts`, {fields: "id,username"}))).forEach(x => addIg(x, null, "비즈니스"));
+    if (!pages.length) (await safe(`'${b.name}' 페이지`, () => all(`${b.id}/owned_pages`, {fields: "name,instagram_business_account"}))).forEach(p => { pages.push(p); addIg(p.instagram_business_account, p.id, "비즈니스 페이지"); });
+  }
+  const igs = [...ig.values()];
+  const usable = a => ![2, 101].includes(a.account_status);
+  const firstAcct = accts.find(a => usable(a) && /nonce|논스/i.test(a.name)) || accts.find(usable);
+  const firstIg = igs.find(x => /nonce/i.test(x.username)) || igs[0];
+  const firstPage = (firstIg && pages.find(p => p.id === firstIg.page)) || pages.find(p => /nonce|논스/i.test(p.name)) || pages[0];
+  $("#app").innerHTML = `${DEMO ? demoNote() : ""}<div class="c"><h2>광고 계정과 인스타 계정 선택</h2>
+    <p class="muted">광고비가 나갈 광고 계정</p>
+    ${accts.map(a => `<label class="opt"><input type="radio" name="a" value="${esc(a.id)}" data-n="${esc(a.name)}" data-c="${esc(a.currency)}" ${usable(a) ? "" : "disabled"} ${a === firstAcct ? "checked" : ""}>
+      <span>${esc(a.name)}<br><span class="muted">${esc(a.currency)}${usable(a) ? "" : " · 사용할 수 없는 계정(정지·닫힘)"}</span></span></label>`).join("")}
+    ${accts.length ? "" : `<div class="note">광고 계정이 없습니다. <a href="https://business.facebook.com/settings/ad-accounts" target="_blank">메타에서 광고 계정 만들기</a> 후 <a href="#" class="re">다시 불러오기</a></div>`}
+    <p class="muted" style="margin-top:18px">광고를 낼 인스타 계정</p>
+    ${igs.map(x => `<label class="opt"><input type="radio" name="i" value="${esc(x.id)}" data-u="${esc(x.username)}" data-p="${esc(x.page || "")}" ${x === firstIg ? "checked" : ""}>
+      <span>${x.username ? "@" + esc(x.username) : "인스타 계정 " + esc(x.id)}<br><span class="muted">${esc(x.from)}에 연결됨</span></span></label>`).join("")}
+    <p class="muted" style="margin-top:18px">광고에 함께 표시될 페이스북 페이지</p>
+    ${pages.map(p => `<label class="opt"><input type="radio" name="p" value="${esc(p.id)}" data-n="${esc(p.name)}" ${p === firstPage ? "checked" : ""}><span>${esc(p.name)}</span></label>`).join("")}
+    ${igs.length && pages.length ? "" : `<div class="note">${!pages.length ? "로그인할 때 연결할 <b>페이지</b>가 선택되지 않았습니다. " : ""}${!igs.length ? "연결된 <b>인스타 계정</b>을 찾지 못했습니다. " : ""}
+      아래 <b>다시 로그인</b>을 누르고, 메타가 '어떤 비즈니스·페이지·인스타를 연결할지' 물으면 <b>nonce</b>를 모두 선택해 주세요.</div>
+      <button class="btn fb full" id="rel">다시 로그인 (연결할 계정 다시 고르기)</button>`}
+    <button class="btn full" id="go">이 계정으로 진행</button>
+    <details style="margin-top:14px"><summary class="muted">연결 상태 자세히 (막히면 이 부분을 캡처해 보내 주세요)</summary>
+      <p class="muted" style="margin-top:8px">광고 계정 ${accts.length}개 · 페이지 ${pages.length}개 · 인스타 ${igs.length}개 · 비즈니스 ${biz.length}개<br>${diag.map(esc).join("<br>") || "오류 없음"}</p></details>
+    ${err ? `<div class="alert">${esc(err)}</div>` : ""}<div id="pickErr"></div></div>`;
+  document.querySelectorAll(".re").forEach(el => el.onclick = e => { e.preventDefault(); viewPick(); });
+  if ($("#rel")) $("#rel").onclick = () => FB.login(r => { if (r.authResponse) { token = r.authResponse.accessToken; viewPick(); } }, CFG.configId ? {config_id: CFG.configId, auth_type: "rerequest"} : {scope: SCOPE, auth_type: "rerequest"});
+  $("#go").onclick = () => {
+    const a = document.querySelector("input[name=a]:checked"), i = document.querySelector("input[name=i]:checked"), p = document.querySelector("input[name=p]:checked");
+    if (!a || !i || !p) { $("#pickErr").innerHTML = `<div class="alert">${!a ? "광고 계정" : !i ? "인스타 계정" : "페이스북 페이지"}을 골라 주세요.</div>`; return; }
+    Object.assign(S, {acct: a.value, acctName: a.dataset.n, cur: a.dataset.c || "KRW", page: p.value, pageName: p.dataset.n, ig: i.value, igName: i.dataset.u || p.dataset.n}); save();
+    log(`광고 계정 '${a.dataset.n}'(${a.dataset.c}) · ${i.dataset.u ? "@" + i.dataset.u : "인스타"} · 페이지 '${p.dataset.n}' 연결`); viewCreate();
+  };
 }
 
 async function account() { return get(S.acct, {fields: "name,currency,account_status,amount_spent,spend_cap,min_daily_budget,funding_source_details"}); }
 function days(st) { const s = st.start ? Date.parse(st.start) : Date.now(); return Math.max(1, (Date.parse(st.end) - s) / 864e5); }
+
 /* ================= 화면: 3 광고 만들기 (카드 · 사진 · 세팅 · 광고 시작) ================= */
 let lastAcct = null;
 function cardBox(acct) {
@@ -211,7 +236,7 @@ async function viewCreate(err) {
       <label>캠페인 이름</label><input id="s_name" value="${esc(st.name)}" ${more ? "disabled" : ""}>
       <label>시작</label><input id="s_start" type="datetime-local" value="${esc(st.start)}" ${more ? "disabled" : ""}>
       <label>끝</label><input id="s_end" type="datetime-local" value="${esc(st.end)}">
-      <label>총금액(원)</label><input id="s_total" inputmode="numeric" value="${st.total || ""}" placeholder="예: 300000">
+      <label>총금액(${esc(S.cur || "KRW")})</label><input id="s_total" inputmode="decimal" value="${st.total || ""}" placeholder="${(S.cur || "KRW") === "KRW" ? "예: 300000" : "예: 200 (" + esc(S.cur) + ")"}">
       <label>나이</label><div style="display:flex;gap:8px;align-items:center"><input id="s_amin" inputmode="numeric" value="${st.ageMin}" style="width:90px" ${more ? "disabled" : ""}> ~ <input id="s_amax" inputmode="numeric" value="${st.ageMax}" style="width:90px" ${more ? "disabled" : ""}><span class="muted">65 = 65세 이상</span></div>
       <label>링크</label><input id="s_link" value="${esc(st.link)}">
       <label>버튼</label><select id="s_cta">${ctaOpts}</select>
@@ -236,7 +261,7 @@ async function viewCreate(err) {
 
 function readForm() {
   const st = settings();
-  return {name: $("#s_name").value.trim(), start: $("#s_start").value, end: $("#s_end").value, total: Number(($("#s_total").value || "0").replace(/[^\d]/g, "")),
+  return {name: $("#s_name").value.trim(), start: $("#s_start").value, end: $("#s_end").value, total: num($("#s_total").value),
     ageMin: Math.max(18, Number($("#s_amin").value) || 18), ageMax: Math.min(65, Number($("#s_amax").value) || 65), link: $("#s_link").value.trim(),
     cta: $("#s_cta").value, message: $("#s_msg").value.trim(), title: $("#s_title").value.trim(), positions: st.positions || D0.positions};
 }
@@ -248,16 +273,16 @@ function formErrors(ns, acct) {
   if (!ns.total) e.push("총금액을 적어 주세요.");
   if (!/^https?:\/\//.test(ns.link)) e.push("링크는 https:// 로 시작해야 합니다.");
   if (!ns.message) e.push("본문을 적어 주세요.");
-  const mdb = Number((acct || {}).min_daily_budget || 0), d = Math.ceil(days(ns));
+  const mdb = Number((acct || {}).min_daily_budget || 0) / OFF(), d = Math.ceil(days(ns));
   if (mdb && ns.total < mdb * d) e.push(`메타 최소 금액보다 적습니다(하루 ${won(mdb)} × ${d}일 = ${won(mdb * d)} 이상).`);
-  const cap = Number((acct || {}).spend_cap || 0), left = cap - Number((acct || {}).amount_spent || 0);
+  const cap = Number((acct || {}).spend_cap || 0) / OFF(), left = cap - Number((acct || {}).amount_spent || 0) / OFF();
   if (cap && ns.total > left + (S.adset ? settings().total : 0)) e.push(`광고 계정 지출 한도의 남은 금액(${won(left)})보다 큽니다.`);
   return e;
 }
 function updateStart() {
   const btn = $("#start"); if (!btn) return;
-  const t = Number(($("#s_total").value || "0").replace(/[^\d]/g, "")), e = $("#s_end").value;
-  $("#agreeTxt").innerHTML = `${e ? e.replace("T", " ") : "끝 시각"}까지 총 <b>${t ? won(t) : "_원"}</b> 안에서 이 광고 계정에 등록된 카드로 결제되는 것에 동의합니다.`;
+  const t = num($("#s_total").value), e = $("#s_end").value;
+  $("#agreeTxt").innerHTML = `${e ? e.replace("T", " ") : "끝 시각"}까지 총 <b>${t ? won(t) : "_"}</b> 안에서 이 광고 계정에 등록된 카드로 결제되는 것에 동의합니다.`;
   const why = [];
   if (!lastAcct || !lastAcct.funding_source_details) why.push("① 카드를 등록해 주세요");
   if (!queue.length) why.push("② 사진을 골라 주세요");
@@ -276,7 +301,7 @@ async function startAds() {
   btn.disabled = true; btn.textContent = "메타에 올리는 중…";
   try {
     const old = settings(); S.settings = ns; S.consent = true; save();
-    if (S.adset && (old.total !== ns.total || old.end !== ns.end)) { await post(S.adset, {lifetime_budget: ns.total, end_time: iso(ns.end)}); log(`금액·기간 변경: ${ns.end.replace("T", " ")}까지 ${won(ns.total)}`); }
+    if (S.adset && (old.total !== ns.total || old.end !== ns.end)) { await post(S.adset, {lifetime_budget: Math.round(ns.total * OFF()), end_time: iso(ns.end)}); log(`금액·기간 변경: ${ns.end.replace("T", " ")}까지 ${won(ns.total)}`); }
     else if (!S.adset) log(`세팅: ${ns.end.replace("T", " ")}까지 ${won(ns.total)}`);
     await ensureCampaign();
     if (mode === "one" || queue.length === 1) await makeAd(queue, base);
@@ -308,7 +333,7 @@ async function ensureCampaign() {
   if (!S.adset) {
     const t = {geo_locations: {countries: ["KR"]}, age_min: st.ageMin, age_max: st.ageMax, targeting_automation: {advantage_audience: 0},
       publisher_platforms: ["instagram"], instagram_positions: st.positions || D0.positions};
-    const p = {name: st.name, campaign_id: S.campaign, lifetime_budget: st.total, end_time: iso(st.end), billing_event: "IMPRESSIONS",
+    const p = {name: st.name, campaign_id: S.campaign, lifetime_budget: Math.round(st.total * OFF()), end_time: iso(st.end), billing_event: "IMPRESSIONS",
       optimization_goal: "LINK_CLICKS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: t, status: "PAUSED"};
     if (st.start && Date.parse(st.start) > Date.now() + 6e5) p.start_time = iso(st.start);
     S.adset = (await post(`${S.acct}/adsets`, p)).id; save(); log(`광고 세트 만듦: ${won(st.total)}`);
